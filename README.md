@@ -6,7 +6,7 @@ This is a package that allows ROS to communicate with Telegram. Nodes are divide
 ## 1. Node
 This package only provides a single `telegram_ros` Node. A detailed description of this Node and its configuration options is found below.
 ### 1.1 telegram_ros
-![Node] (./images/Node_Overview.png) 
+![Node](./images/Node_Overview.png) 
 
 #### 1.1.1 Services
 `change_state_service` ([geometry_msgs/Twist](https://docs.ros.org/en/api/geometry_msgs/html/msg/Twist.html))
