@@ -1,0 +1,75 @@
+#!/usr/bin/python3
+
+import rospy
+import telebot
+from std_srvs.srv import Trigger, TriggerResponse
+
+###############################################################
+#            callback service call -> changes state           #
+###############################################################
+#      message service call -> return (True) or (False)       #
+#     (True) == message exist, (False) == message is none     #
+###############################################################
+
+class TelegramServerNode:
+    def __init__(self, token, chat_id, message_accept, message_refuse, message_wait):
+        self._updates = None
+        self._chat_id = chat_id
+        self._check_state = False
+        self._message = TriggerResponse()
+        self._bot = telebot.TeleBot(token)
+        self._last_update_id = self.get_last_update_id() + 1
+
+        self._message_accept = message_accept
+        self._message_refuse = message_refuse
+        self._message_wait = message_wait
+
+        rospy.init_node('telegram_node')
+        rospy.Service('change_state_service', Trigger, self.change_state_callback)
+        rospy.Service('request_message_service', Trigger, self.request_message_callback)
+
+    def change_state_callback(self, arg):
+        if not self._check_state:
+            self._check_state = True
+            self._message.success = False
+            self._bot.send_message(chat_id=self._chat_id, text=self._message_accept)
+        else:
+            self._check_state = False
+            self._message.success = False
+            self._message.message = ''
+        response = TriggerResponse()
+        response.success =  self._check_state
+        response.message = "OK"
+        return response
+
+    def request_message_callback(self, arg):
+        return self._message
+        
+    def get_last_update_id(self):
+        updates = self._bot.get_updates()
+        if updates:
+            last_update = updates[-1]
+            return last_update.update_id
+        else:
+            return 0
+
+    def run(self):
+        while True:
+            updates = self._bot.get_updates(offset=self._last_update_id)
+            for update in updates:
+                message = update.message
+                self._last_update_id = update.update_id + 1
+                if self._check_state:
+                    self._bot.reply_to(message, self._message_wait)
+                    self._message.message = message.text
+                    self._message.success = True
+                else:
+                    self._bot.send_message(chat_id=self._chat_id, text=self._message_refuse)
+
+'''
+if __name__ == "__main__":
+    # load token & chat_id
+    # write message 1, 2, 3
+    node = TelegramServerNode(token, chat_id, message1, message2, message3)
+    node.run()
+'''
